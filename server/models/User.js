@@ -73,6 +73,13 @@ const UserProxy = new Proxy({}, {
 
     if (!UserModel) return undefined;
 
+    // Helper to wrap user instance with _id
+    const wrapUser = (u) => {
+      if (!u) return null;
+      u._id = u.id;
+      return u;
+    };
+
     // MongoDB→Sequelize adapters for controllers
     if (prop === 'findOne') {
       return (query = {}) => {
@@ -80,27 +87,37 @@ const UserProxy = new Proxy({}, {
           : query.role ? { role: query.role }
           : query._id ? { id: query._id }
           : query.id ? { id: query.id } : {});
-        const result = UserModel.findOne({ where });
-        result.select = () => result; // no-op for chaining
-        return result;
+        const promise = UserModel.findOne({ where }).then(wrapUser);
+        promise.select = () => promise;
+        return promise;
       };
     }
 
     if (prop === 'findById') {
       return (id) => {
-        const result = UserModel.findOne({ where: { id } });
-        result.select = () => result;
-        return result;
+        if (!id) return Promise.resolve(null);
+        const promise = UserModel.findOne({ where: { id } }).then(wrapUser);
+        promise.select = () => promise;
+        return promise;
+      };
+    }
+
+    if (prop === 'create') {
+      return async (data) => {
+        const u = await UserModel.create(data);
+        return wrapUser(u);
       };
     }
 
     if (prop === 'find') {
       return (query = {}) => {
         const where = query.role ? { role: query.role } : {};
-        const result = UserModel.findAll({ where });
-        result.select = () => result;
-        result.sort = () => result;
-        return result;
+        const promise = UserModel.findAll({ where, order: [['createdAt', 'DESC']] }).then((users) =>
+          users.map(wrapUser)
+        );
+        promise.select = () => promise;
+        promise.sort = () => promise;
+        return promise;
       };
     }
 

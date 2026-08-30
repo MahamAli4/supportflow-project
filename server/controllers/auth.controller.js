@@ -43,13 +43,13 @@ const register = async (req, res, next) => {
     });
 
     // 4. Generate JWT token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id || user.id);
 
     return res.status(201).json({
       success: true,
       token,
       user: {
-        id: user._id,
+        id: user._id || user.id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -90,13 +90,13 @@ const login = async (req, res, next) => {
     }
 
     // 4. Generate JWT token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id || user.id);
 
     return res.status(200).json({
       success: true,
       token,
       user: {
-        id: user._id,
+        id: user._id || user.id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -118,7 +118,7 @@ const getMe = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       user: {
-        id: req.user._id,
+        id: req.user._id || req.user.id,
         name: req.user.name,
         email: req.user.email,
         role: req.user.role,
