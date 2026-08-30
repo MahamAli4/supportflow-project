@@ -94,6 +94,10 @@ const MessageProxy = new Proxy({}, {
       };
     }
 
+    if (typeof MessageModel[prop] === 'function') {
+      return MessageModel[prop].bind(MessageModel);
+    }
+
     return MessageModel[prop];
   },
 });

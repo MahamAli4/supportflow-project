@@ -34,6 +34,9 @@ const CounterProxy = new Proxy({}, {
     if (global.__USE_IN_MEMORY_DB__ && inMemory.MockCounter[prop] !== undefined) {
       return inMemory.MockCounter[prop];
     }
+    if (typeof CounterModel[prop] === 'function') {
+      return CounterModel[prop].bind(CounterModel);
+    }
     return CounterModel ? CounterModel[prop] : undefined;
   },
 });

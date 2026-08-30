@@ -111,8 +111,8 @@ const UserProxy = new Proxy({}, {
       };
     }
 
-    if (prop === 'hashPassword') {
-      return UserModel.hashPassword;
+    if (typeof UserModel[prop] === 'function') {
+      return UserModel[prop].bind(UserModel);
     }
 
     return UserModel[prop];

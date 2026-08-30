@@ -174,6 +174,10 @@ const TicketProxy = new Proxy({}, {
       };
     }
 
+    if (typeof TicketModel[prop] === 'function') {
+      return TicketModel[prop].bind(TicketModel);
+    }
+
     return TicketModel[prop];
   },
 });
