@@ -1,16 +1,74 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import { Shield, Mail, Lock, LogIn, AlertCircle, Sparkles, User, Headphones, Check } from 'lucide-react';
 
 export const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
+
+  const demoPresets = [
+    {
+      id: 'customer',
+      roleName: 'Customer',
+      email: 'customer@supportflow.demo',
+      password: 'Customer123!',
+      color: 'border-blue-300 hover:bg-blue-50 text-blue-800 bg-blue-50/50',
+      activeColor: 'ring-2 ring-blue-500 bg-blue-50 border-blue-400',
+      icon: User,
+    },
+    {
+      id: 'agent',
+      roleName: 'Support Agent',
+      email: 'agent@supportflow.demo',
+      password: 'Agent123!',
+      color: 'border-indigo-300 hover:bg-indigo-50 text-indigo-800 bg-indigo-50/50',
+      activeColor: 'ring-2 ring-indigo-500 bg-indigo-50 border-indigo-400',
+      icon: Headphones,
+    },
+    {
+      id: 'admin',
+      roleName: 'Super Admin',
+      email: 'admin@supportflow.demo',
+      password: 'Admin123!',
+      color: 'border-purple-300 hover:bg-purple-50 text-purple-800 bg-purple-50/50',
+      activeColor: 'ring-2 ring-purple-500 bg-purple-50 border-purple-400',
+      icon: Shield,
+    },
+  ];
+
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    const emailParam = searchParams.get('email');
+
+    if (roleParam) {
+      const preset = demoPresets.find((p) => p.id === roleParam);
+      if (preset) {
+        setEmail(preset.email);
+        setPassword(preset.password);
+        setSelectedRole(preset.id);
+        return;
+      }
+    }
+
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
+
+  const selectPreset = (preset) => {
+    setEmail(preset.email);
+    setPassword(preset.password);
+    setSelectedRole(preset.id);
+    setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +81,7 @@ export const Login = () => {
 
     setIsSubmitting(true);
     try {
-      const user = await login(email, password);
+      const user = await login(email.trim(), password);
       if (user.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (user.role === 'agent') {
@@ -32,6 +90,7 @@ export const Login = () => {
         navigate('/customer/dashboard');
       }
     } catch (err) {
+      console.error('[Login Error]', err);
       const errMsg = err.response?.data?.error || 'Invalid email or password';
       setError(errMsg);
     } finally {
@@ -40,7 +99,7 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 flex flex-col justify-center py-10 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-12 h-12 rounded-xl bg-purple-600 flex items-center justify-center shadow-md">
@@ -50,12 +109,44 @@ export const Login = () => {
         <h2 className="mt-4 text-center text-2xl font-bold tracking-tight text-slate-900">
           Sign in to SupportFlow
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
-          AI-Assisted Customer Support Desk
+        <p className="mt-1 text-center text-xs text-slate-600">
+          AI-Assisted Customer Support Desk with State-Machine Workflows
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
+        
+        {/* Quick Autofill Role Selectors */}
+        <div className="mb-4 bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
+          <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Click to Autofill Demo Credentials:</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {demoPresets.map((preset) => {
+              const Icon = preset.icon;
+              const isSelected = selectedRole === preset.id;
+
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => selectPreset(preset)}
+                  className={`p-2 rounded-lg border text-left flex flex-col justify-between transition-all ${
+                    isSelected ? preset.activeColor : preset.color
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    {isSelected && <Check className="w-3 h-3 text-emerald-600 font-bold" />}
+                  </div>
+                  <span className="text-[11px] font-bold mt-1 truncate">{preset.roleName}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="bg-white py-8 px-6 shadow-sm border border-slate-200 rounded-xl sm:px-10">
           
           {error && (
@@ -114,11 +205,18 @@ export const Login = () => {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm border-t border-slate-100 pt-5">
-            <span className="text-slate-600">Don't have an account? </span>
-            <Link to="/register" className="font-semibold text-purple-600 hover:text-purple-500">
-              Register as Customer
-            </Link>
+          <div className="mt-6 text-center text-xs border-t border-slate-100 pt-5 space-y-2">
+            <div>
+              <span className="text-slate-600">Don't have an account? </span>
+              <Link to="/register" className="font-semibold text-purple-600 hover:text-purple-500">
+                Register as Customer
+              </Link>
+            </div>
+            <div>
+              <Link to="/" className="text-slate-500 hover:text-slate-800 font-medium">
+                ← Back to Landing Page & Overview
+              </Link>
+            </div>
           </div>
         </div>
       </div>

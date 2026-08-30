@@ -34,6 +34,17 @@ const messageSchema = new mongoose.Schema(
 // Index for rapid retrieval of conversation messages by ticket ordered by creation time
 messageSchema.index({ ticketId: 1, createdAt: 1 });
 
-const Message = mongoose.model('Message', messageSchema);
+const inMemory = require('../services/inMemoryDb');
 
-module.exports = Message;
+const MongooseMessage = mongoose.model('Message', messageSchema);
+
+const MessageProxy = new Proxy(MongooseMessage, {
+  get(target, prop) {
+    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockMessage[prop]) {
+      return inMemory.MockMessage[prop];
+    }
+    return target[prop];
+  },
+});
+
+module.exports = MessageProxy;

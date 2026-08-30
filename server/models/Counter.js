@@ -11,6 +11,17 @@ const counterSchema = new mongoose.Schema({
   },
 });
 
-const Counter = mongoose.model('Counter', counterSchema);
+const inMemory = require('../services/inMemoryDb');
 
-module.exports = Counter;
+const MongooseCounter = mongoose.model('Counter', counterSchema);
+
+const CounterProxy = new Proxy(MongooseCounter, {
+  get(target, prop) {
+    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockCounter[prop]) {
+      return inMemory.MockCounter[prop];
+    }
+    return target[prop];
+  },
+});
+
+module.exports = CounterProxy;

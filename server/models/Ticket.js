@@ -97,6 +97,17 @@ ticketSchema.index({ assignedAgentId: 1, status: 1 });
 ticketSchema.index({ status: 1 });
 ticketSchema.index({ category: 1 });
 
-const Ticket = mongoose.model('Ticket', ticketSchema);
+const inMemory = require('../services/inMemoryDb');
 
-module.exports = Ticket;
+const MongooseTicket = mongoose.model('Ticket', ticketSchema);
+
+const TicketProxy = new Proxy(MongooseTicket, {
+  get(target, prop) {
+    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockTicket[prop]) {
+      return inMemory.MockTicket[prop];
+    }
+    return target[prop];
+  },
+});
+
+module.exports = TicketProxy;

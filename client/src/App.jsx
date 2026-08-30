@@ -21,11 +21,12 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminTickets from './pages/AdminTickets';
 
+import LandingPage from './pages/LandingPage';
 import { useAuth } from './context/AuthContext';
 
 const HomeRedirect = () => {
   const { isAuthenticated, role } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <LandingPage />;
   if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   if (role === 'agent') return <Navigate to="/agent/dashboard" replace />;
   return <Navigate to="/customer/dashboard" replace />;

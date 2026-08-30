@@ -33,8 +33,8 @@ export const Navbar = () => {
           
           {/* Logo & Brand */}
           <div className="flex items-center space-x-3">
-            <Link to={getBrandHome()} className="flex items-center space-x-2.5">
-              <Shield className="w-7 h-7 text-purple-400" />
+            <Link to="/" className="flex items-center space-x-2.5 group">
+              <Shield className="w-7 h-7 text-purple-400 group-hover:text-purple-300 transition-colors" />
               <span className="font-bold text-lg tracking-tight">SupportFlow</span>
             </Link>
 
