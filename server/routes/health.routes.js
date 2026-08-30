@@ -1,23 +1,30 @@
 const express = require('express');
-const mongoose = require('mongoose');
+const { getSequelize } = require('../config/db');
 const router = express.Router();
 
 // GET /api/health - Health check endpoint returning API and database status
-router.get('/', (req, res) => {
-  const dbStateMap = {
-    0: 'Disconnected',
-    1: 'Connected',
-    2: 'Connecting',
-    3: 'Disconnecting',
-  };
+router.get('/', async (req, res) => {
+  let dbStatus = 'Disconnected';
 
-  const dbState = mongoose.connection ? mongoose.connection.readyState : 0;
+  try {
+    if (global.__USE_IN_MEMORY_DB__) {
+      dbStatus = 'In-Memory (Demo Mode)';
+    } else {
+      const sequelize = getSequelize();
+      if (sequelize) {
+        await sequelize.authenticate();
+        dbStatus = 'Connected (PostgreSQL)';
+      }
+    }
+  } catch {
+    dbStatus = 'Disconnected';
+  }
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: 'SupportFlow API Server is running',
     timestamp: new Date().toISOString(),
-    database: dbStateMap[dbState] || 'Unknown',
+    database: dbStatus,
     phase: 'Phase 1 Foundation',
   });
 });

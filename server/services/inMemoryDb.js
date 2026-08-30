@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const mongoose = require('mongoose');
+const { randomUUID } = require('crypto');
 
 // In-Memory Storage Tables
 const memoryStore = {
@@ -10,7 +10,7 @@ const memoryStore = {
 };
 
 function generateId() {
-  return new mongoose.Types.ObjectId().toString();
+  return randomUUID();
 }
 
 // -------------------------------------------------------------
