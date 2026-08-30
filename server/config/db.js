@@ -20,7 +20,9 @@ const connectDB = async (customUri) => {
       dialect: 'postgres',
       logging: process.env.NODE_ENV === 'development' ? console.log : false,
       dialectOptions: {
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        // SSL only needed for external cloud databases (RDS, Heroku, etc.)
+        // Docker internal network does NOT need SSL
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       },
     });
 
