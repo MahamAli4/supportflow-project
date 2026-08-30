@@ -65,10 +65,57 @@ const UserProxy = new Proxy({}, {
   get(target, prop) {
     // Pass through the initialize function directly
     if (prop === 'initializeUser') return initializeUser;
+
+    // InMemory mode — use mock directly
     if (global.__USE_IN_MEMORY_DB__ && inMemory.MockUser[prop] !== undefined) {
       return inMemory.MockUser[prop];
     }
-    return UserModel ? UserModel[prop] : undefined;
+
+    if (!UserModel) return undefined;
+
+    // MongoDB→Sequelize adapters for controllers
+    if (prop === 'findOne') {
+      return (query = {}) => {
+        const where = query.where || (query.email ? { email: query.email }
+          : query.role ? { role: query.role }
+          : query._id ? { id: query._id }
+          : query.id ? { id: query.id } : {});
+        const result = UserModel.findOne({ where });
+        result.select = () => result; // no-op for chaining
+        return result;
+      };
+    }
+
+    if (prop === 'findById') {
+      return (id) => {
+        const result = UserModel.findOne({ where: { id } });
+        result.select = () => result;
+        return result;
+      };
+    }
+
+    if (prop === 'find') {
+      return (query = {}) => {
+        const where = query.role ? { role: query.role } : {};
+        const result = UserModel.findAll({ where });
+        result.select = () => result;
+        result.sort = () => result;
+        return result;
+      };
+    }
+
+    if (prop === 'countDocuments') {
+      return (query = {}) => {
+        const where = query.role ? { role: query.role } : {};
+        return UserModel.count({ where });
+      };
+    }
+
+    if (prop === 'hashPassword') {
+      return UserModel.hashPassword;
+    }
+
+    return UserModel[prop];
   },
 });
 
