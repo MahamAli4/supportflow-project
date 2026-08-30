@@ -156,7 +156,7 @@ export const Login = () => {
             </div>
           )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={handleSubmit} autoComplete="off">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Email Address
@@ -168,6 +168,7 @@ export const Login = () => {
                 <input
                   type="email"
                   required
+                  autoComplete="off"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@supportflow.demo"
@@ -187,6 +188,7 @@ export const Login = () => {
                 <input
                   type="password"
                   required
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
