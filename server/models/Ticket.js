@@ -1,113 +1,97 @@
-const mongoose = require('mongoose');
-
-const aiSuggestionSchema = new mongoose.Schema(
-  {
-    category: { type: String, default: null },
-    priority: { type: String, default: null },
-    summary: { type: String, default: null },
-  },
-  { _id: false }
-);
-
-const ticketSchema = new mongoose.Schema(
-  {
-    ticketNumber: {
-      type: String,
-      required: [true, 'Ticket number is required'],
-      unique: true,
-      trim: true,
-    },
-    customerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Customer ID is required'],
-    },
-    assignedAgentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
-    },
-    subject: {
-      type: String,
-      required: [true, 'Subject is required'],
-      trim: true,
-    },
-    description: {
-      type: String,
-      required: [true, 'Description is required'],
-    },
-    category: {
-      type: String,
-      required: [true, 'Category is required'],
-      trim: true,
-    },
-    priority: {
-      type: String,
-      enum: {
-        values: ['Low', 'Medium', 'High'],
-        message: 'Priority must be Low, Medium, or High',
-      },
-      default: 'Medium',
-    },
-    summary: {
-      type: String,
-      default: '',
-    },
-    status: {
-      type: String,
-      enum: {
-        values: ['New', 'Assigned', 'In Progress', 'Resolved'],
-        message: 'Status must be New, Assigned, In Progress, or Resolved',
-      },
-      default: 'New',
-    },
-    aiSuggestion: {
-      type: aiSuggestionSchema,
-      default: () => ({}),
-    },
-    aiStatus: {
-      type: String,
-      enum: {
-        values: ['pending', 'success', 'failed'],
-        message: 'AI status must be pending, success, or failed',
-      },
-      default: 'pending',
-    },
-    triageReviewed: {
-      type: Boolean,
-      default: false,
-    },
-    resolutionNote: {
-      type: String,
-      default: '',
-    },
-    resolvedAt: {
-      type: Date,
-      default: null,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-// Useful Indexes for query performance
-ticketSchema.index({ customerId: 1, createdAt: -1 });
-ticketSchema.index({ assignedAgentId: 1, status: 1 });
-ticketSchema.index({ status: 1 });
-ticketSchema.index({ category: 1 });
-
+const { DataTypes } = require('sequelize');
 const inMemory = require('../services/inMemoryDb');
 
-const MongooseTicket = mongoose.model('Ticket', ticketSchema);
+let Ticket;
 
-const TicketProxy = new Proxy(MongooseTicket, {
+/**
+ * Initialize Ticket model with Sequelize
+ */
+const initializeTicket = (sequelize) => {
+  Ticket = sequelize.define(
+    'Ticket',
+    {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+      },
+      ticketNumber: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      customerId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+      },
+      assignedAgentId: {
+        type: DataTypes.UUID,
+        defaultValue: null,
+      },
+      subject: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      category: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      priority: {
+        type: DataTypes.ENUM('Low', 'Medium', 'High'),
+        defaultValue: 'Medium',
+      },
+      summary: {
+        type: DataTypes.TEXT,
+        defaultValue: '',
+      },
+      status: {
+        type: DataTypes.ENUM('New', 'Assigned', 'In Progress', 'Resolved'),
+        defaultValue: 'New',
+      },
+      aiSuggestion: {
+        type: DataTypes.JSONB,
+        defaultValue: { category: null, priority: null, summary: null },
+      },
+      aiStatus: {
+        type: DataTypes.ENUM('pending', 'success', 'failed'),
+        defaultValue: 'pending',
+      },
+      triageReviewed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      resolutionNote: {
+        type: DataTypes.TEXT,
+        defaultValue: '',
+      },
+      resolvedAt: {
+        type: DataTypes.DATE,
+        defaultValue: null,
+      },
+    },
+    {
+      timestamps: true,
+      tableName: 'tickets',
+    }
+  );
+
+  return Ticket;
+};
+
+const TicketProxy = new Proxy({}, {
   get(target, prop) {
     if (global.__USE_IN_MEMORY_DB__ && inMemory.MockTicket[prop]) {
       return inMemory.MockTicket[prop];
     }
-    return target[prop];
+    return Ticket ? Ticket[prop] : undefined;
   },
 });
 
+// Named exports for initialization, default proxy for controllers
 module.exports = TicketProxy;
+module.exports.initializeTicket = initializeTicket;
+module.exports.TicketProxy = TicketProxy;

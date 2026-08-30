@@ -83,4 +83,7 @@ const UserProxy = new Proxy({}, {
   },
 });
 
-module.exports = { initializeUser, UserProxy };
+// Named exports for initialization, default proxy for controllers/middleware
+module.exports = UserProxy;
+module.exports.initializeUser = initializeUser;
+module.exports.UserProxy = UserProxy;

@@ -5,11 +5,15 @@ let sequelize;
 
 /**
  * Establishes connection to PostgreSQL database or falls back to in-memory store.
+ * Also initializes all Sequelize models on successful connection.
  * @param {string} [customUri] - Optional URI override
  * @returns {Promise<Sequelize | object>}
  */
 const connectDB = async (customUri) => {
-  const uri = customUri || process.env.DATABASE_URL || 'postgresql://supportflow_user:supportflow_password@localhost:5432/supportflow';
+  const uri =
+    customUri ||
+    process.env.DATABASE_URL ||
+    'postgresql://supportflow_user:supportflow_password@localhost:5432/supportflow';
 
   try {
     sequelize = new Sequelize(uri, {
@@ -22,11 +26,22 @@ const connectDB = async (customUri) => {
 
     await sequelize.authenticate();
     console.log(`[Database] PostgreSQL Connected: ${sequelize.config.host}`);
-    
-    // Sync models with database
+
+    // Initialize all models
+    const { initializeUser } = require('../models/User');
+    const { initializeTicket } = require('../models/Ticket');
+    const { initializeMessage } = require('../models/Message');
+    const { initializeCounter } = require('../models/Counter');
+
+    initializeUser(sequelize);
+    initializeTicket(sequelize);
+    initializeMessage(sequelize);
+    initializeCounter(sequelize);
+
+    // Sync models with database (alter in dev, safe in production)
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
     console.log('[Database] Models synchronized with database');
-    
+
     global.__USE_IN_MEMORY_DB__ = false;
     return sequelize;
   } catch (error) {
