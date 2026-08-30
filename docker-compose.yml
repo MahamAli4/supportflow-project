@@ -1,0 +1,73 @@
+services:
+  # ===================================================
+  # 1. MongoDB Database Container
+  # ===================================================
+  mongodb:
+    image: mongo:7.0
+    container_name: supportflow-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: supportflow
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - supportflow-network
+
+  # ===================================================
+  # 2. Node.js Express Backend API Container
+  # ===================================================
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: supportflow-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/supportflow
+      JWT_SECRET: supportflow_super_secret_jwt_key_phase1
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-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}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-your_gemini_api_key_here}
+      CLIENT_URL: http://localhost
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - supportflow-network
+
+  # ===================================================
+  # 3. Nginx + React Frontend Container
+  # ===================================================
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: supportflow-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - supportflow-network
+
+# ===================================================
+# Docker Volumes & Networks
+# ===================================================
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  supportflow-network:
+    driver: bridge

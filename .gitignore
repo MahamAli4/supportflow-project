@@ -1,0 +1,75 @@
+# ==========================================
+# SupportFlow Industry-Standard .gitignore
+# ==========================================
+
+# 1. Environment & API Keys (CRITICAL: NEVER COMMIT SECRETS)
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+!server/.env.example
+client/.env
+client/.env.*
+client/.env.local
+!client/.env.example
+
+# 2. Dependencies
+node_modules/
+server/node_modules/
+client/node_modules/
+jspm_packages/
+web_modules/
+
+# 3. Production Build Artifacts & Bundles
+dist/
+client/dist/
+build/
+out/
+.next/
+.vite/
+client/.vite/
+
+# 4. Logs & Debugging Files
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# 5. Testing & Code Coverage
+coverage/
+.nyc_output/
+.clover/
+
+# 6. IDEs, Editors & Operating System Files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# OS System Junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 7. Local Temporary & System-Generated Files
+.system_generated/
+scratch/
+tmp/
+temp/
+.cache/
