@@ -30,15 +30,15 @@ const connectDB = async (customUri) => {
     console.log(`[Database] PostgreSQL Connected: ${sequelize.config.host}`);
 
     // Initialize all models
-    const { initializeUser } = require('../models/User');
-    const { initializeTicket } = require('../models/Ticket');
-    const { initializeMessage } = require('../models/Message');
-    const { initializeCounter } = require('../models/Counter');
+    const User = require('../models/User');
+    const Ticket = require('../models/Ticket');
+    const Message = require('../models/Message');
+    const Counter = require('../models/Counter');
 
-    initializeUser(sequelize);
-    initializeTicket(sequelize);
-    initializeMessage(sequelize);
-    initializeCounter(sequelize);
+    User.initializeUser(sequelize);
+    Ticket.initializeTicket(sequelize);
+    Message.initializeMessage(sequelize);
+    Counter.initializeCounter(sequelize);
 
     // Sync models with database (alter in dev, safe in production)
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
