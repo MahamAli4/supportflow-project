@@ -1,13 +1,13 @@
 const { DataTypes } = require('sequelize');
 const inMemory = require('../services/inMemoryDb');
 
-let Ticket;
+let TicketModel;
 
 /**
  * Initialize Ticket model with Sequelize
  */
 const initializeTicket = (sequelize) => {
-  Ticket = sequelize.define(
+  TicketModel = sequelize.define(
     'Ticket',
     {
       id: {
@@ -79,19 +79,17 @@ const initializeTicket = (sequelize) => {
     }
   );
 
-  return Ticket;
+  return TicketModel;
 };
 
 const TicketProxy = new Proxy({}, {
   get(target, prop) {
-    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockTicket[prop]) {
+    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockTicket[prop] !== undefined) {
       return inMemory.MockTicket[prop];
     }
-    return Ticket ? Ticket[prop] : undefined;
+    return TicketModel ? TicketModel[prop] : undefined;
   },
 });
 
-// Named exports for initialization, default proxy for controllers
 module.exports = TicketProxy;
 module.exports.initializeTicket = initializeTicket;
-module.exports.TicketProxy = TicketProxy;

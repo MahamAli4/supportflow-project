@@ -1,13 +1,13 @@
 const { DataTypes } = require('sequelize');
 const inMemory = require('../services/inMemoryDb');
 
-let Counter;
+let CounterModel;
 
 /**
  * Initialize Counter model with Sequelize (used for auto-incrementing ticket numbers)
  */
 const initializeCounter = (sequelize) => {
-  Counter = sequelize.define(
+  CounterModel = sequelize.define(
     'Counter',
     {
       id: {
@@ -25,19 +25,17 @@ const initializeCounter = (sequelize) => {
     }
   );
 
-  return Counter;
+  return CounterModel;
 };
 
 const CounterProxy = new Proxy({}, {
   get(target, prop) {
-    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockCounter[prop]) {
+    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockCounter[prop] !== undefined) {
       return inMemory.MockCounter[prop];
     }
-    return Counter ? Counter[prop] : undefined;
+    return CounterModel ? CounterModel[prop] : undefined;
   },
 });
 
-// Named exports for initialization, default proxy for utils
 module.exports = CounterProxy;
 module.exports.initializeCounter = initializeCounter;
-module.exports.CounterProxy = CounterProxy;

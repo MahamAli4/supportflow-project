@@ -2,13 +2,13 @@ const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const inMemory = require('../services/inMemoryDb');
 
-let User;
+let UserModel;
 
 /**
  * Initialize User model with Sequelize
  */
 const initializeUser = (sequelize) => {
-  User = sequelize.define(
+  UserModel = sequelize.define(
     'User',
     {
       id: {
@@ -28,7 +28,6 @@ const initializeUser = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
-        lowercase: true,
         validate: {
           isEmail: true,
         },
@@ -41,14 +40,6 @@ const initializeUser = (sequelize) => {
         type: DataTypes.ENUM('customer', 'agent', 'admin'),
         defaultValue: 'customer',
       },
-      createdAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
-      },
     },
     {
       timestamps: true,
@@ -56,34 +47,28 @@ const initializeUser = (sequelize) => {
     }
   );
 
-  /**
-   * Static method to hash password using bcrypt
-   */
-  User.hashPassword = async function (password) {
+  // Static method to hash password
+  UserModel.hashPassword = async function (password) {
     const salt = await bcrypt.genSalt(10);
     return await bcrypt.hash(password, salt);
   };
 
-  /**
-   * Instance method to compare candidate password with stored passwordHash
-   */
-  User.prototype.comparePassword = async function (candidatePassword) {
+  // Instance method to compare passwords
+  UserModel.prototype.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.passwordHash);
   };
 
-  return User;
+  return UserModel;
 };
 
 const UserProxy = new Proxy({}, {
   get(target, prop) {
-    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockUser[prop]) {
+    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockUser[prop] !== undefined) {
       return inMemory.MockUser[prop];
     }
-    return User ? User[prop] : undefined;
+    return UserModel ? UserModel[prop] : undefined;
   },
 });
 
-// Named exports for initialization, default proxy for controllers/middleware
 module.exports = UserProxy;
 module.exports.initializeUser = initializeUser;
-module.exports.UserProxy = UserProxy;
