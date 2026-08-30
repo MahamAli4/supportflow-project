@@ -25,13 +25,13 @@ const createTicket = async (req, res, next) => {
 
     // 3. Find an available support agent to assign
     const availableAgent = await User.findOne({ role: 'agent' });
-    const assignedAgentId = availableAgent ? availableAgent._id : null;
+    const assignedAgentId = availableAgent ? (availableAgent._id || availableAgent.id) : null;
     const initialStatus = assignedAgentId ? 'Assigned' : 'New';
 
     // 4. Create initial ticket record
     const ticket = await Ticket.create({
       ticketNumber,
-      customerId: req.user._id,
+      customerId: req.user._id || req.user.id,
       assignedAgentId,
       subject,
       description,
@@ -77,7 +77,7 @@ const createTicket = async (req, res, next) => {
     ticket.triageReviewed = false;
     await ticket.save();
 
-    const populatedTicket = await Ticket.findById(ticket._id)
+    const populatedTicket = await Ticket.findById(ticket._id || ticket.id)
       .populate('customerId', 'name email role')
       .populate('assignedAgentId', 'name email role');
 
@@ -97,7 +97,8 @@ const createTicket = async (req, res, next) => {
  */
 const getMyTickets = async (req, res, next) => {
   try {
-    const tickets = await Ticket.find({ customerId: req.user._id })
+    const customerId = req.user._id || req.user.id;
+    const tickets = await Ticket.find({ customerId })
       .populate('assignedAgentId', 'name email role')
       .sort({ createdAt: -1 });
 
@@ -127,9 +128,12 @@ const getTicketById = async (req, res, next) => {
     }
 
     // Backend Authorization Check
-    const isCustomerOwner = ticket.customerId._id.toString() === req.user._id.toString();
-    const isAssignedAgent =
-      ticket.assignedAgentId && ticket.assignedAgentId._id.toString() === req.user._id.toString();
+    const customerOwnerId = (ticket.customerId?._id || ticket.customerId?.id || ticket.customerId || '').toString();
+    const currentUserId = (req.user._id || req.user.id || '').toString();
+    const isCustomerOwner = customerOwnerId === currentUserId;
+
+    const assignedAgentId = (ticket.assignedAgentId?._id || ticket.assignedAgentId?.id || ticket.assignedAgentId || '').toString();
+    const isAssignedAgent = assignedAgentId && assignedAgentId === currentUserId;
 
     if (req.user.role === 'customer' && !isCustomerOwner) {
       return res.status(403).json({

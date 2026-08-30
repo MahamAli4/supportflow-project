@@ -16,9 +16,12 @@ const getMessages = async (req, res, next) => {
     }
 
     // Backend Authorization Check
-    const isCustomerOwner = ticket.customerId.toString() === req.user._id.toString();
-    const isAssignedAgent =
-      ticket.assignedAgentId && ticket.assignedAgentId.toString() === req.user._id.toString();
+    const customerOwnerId = (ticket.customerId?._id || ticket.customerId?.id || ticket.customerId || '').toString();
+    const assignedAgentId = (ticket.assignedAgentId?._id || ticket.assignedAgentId?.id || ticket.assignedAgentId || '').toString();
+    const currentUserId = (req.user._id || req.user.id || '').toString();
+
+    const isCustomerOwner = customerOwnerId === currentUserId;
+    const isAssignedAgent = assignedAgentId && assignedAgentId === currentUserId;
 
     if (req.user.role === 'customer' && !isCustomerOwner) {
       return res.status(403).json({
@@ -34,7 +37,7 @@ const getMessages = async (req, res, next) => {
       });
     }
 
-    const messages = await Message.find({ ticketId: ticket._id })
+    const messages = await Message.find({ ticketId: ticket._id || ticket.id })
       .populate('senderId', 'name email role')
       .sort({ createdAt: 1 });
 
@@ -61,9 +64,12 @@ const createMessage = async (req, res, next) => {
     }
 
     // 1. Authorization Check
-    const isCustomerOwner = ticket.customerId.toString() === req.user._id.toString();
-    const isAssignedAgent =
-      ticket.assignedAgentId && ticket.assignedAgentId.toString() === req.user._id.toString();
+    const customerOwnerId = (ticket.customerId?._id || ticket.customerId?.id || ticket.customerId || '').toString();
+    const assignedAgentId = (ticket.assignedAgentId?._id || ticket.assignedAgentId?.id || ticket.assignedAgentId || '').toString();
+    const currentUserId = (req.user._id || req.user.id || '').toString();
+
+    const isCustomerOwner = customerOwnerId === currentUserId;
+    const isAssignedAgent = assignedAgentId && assignedAgentId === currentUserId;
 
     if (req.user.role === 'customer' && !isCustomerOwner) {
       return res.status(403).json({
@@ -96,15 +102,15 @@ const createMessage = async (req, res, next) => {
 
     const { message } = validationResult.data;
 
-    // 4. Create and persist message in MongoDB
+    // 4. Create and persist message
     const newMessage = await Message.create({
-      ticketId: ticket._id,
-      senderId: req.user._id,
+      ticketId: ticket._id || ticket.id,
+      senderId: currentUserId,
       senderRole: req.user.role,
       message: message.trim(),
     });
 
-    const populatedMessage = await Message.findById(newMessage._id).populate(
+    const populatedMessage = await Message.findById(newMessage._id || newMessage.id).populate(
       'senderId',
       'name email role'
     );

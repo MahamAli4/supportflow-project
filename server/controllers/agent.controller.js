@@ -11,7 +11,8 @@ const getAgentTickets = async (req, res, next) => {
   try {
     const { status, priority } = req.query;
 
-    const query = { assignedAgentId: req.user._id };
+    const currentUserId = (req.user._id || req.user.id || '').toString();
+    const query = { assignedAgentId: currentUserId };
     if (status) query.status = status;
     if (priority) query.priority = priority;
 
@@ -42,7 +43,10 @@ const updateTicketStatus = async (req, res, next) => {
     }
 
     // 1. Ownership check: Agent must be assigned to ticket
-    if (!ticket.assignedAgentId || ticket.assignedAgentId.toString() !== req.user._id.toString()) {
+    const assignedAgentId = (ticket.assignedAgentId?._id || ticket.assignedAgentId?.id || ticket.assignedAgentId || '').toString();
+    const currentUserId = (req.user._id || req.user.id || '').toString();
+
+    if (!assignedAgentId || assignedAgentId !== currentUserId) {
       return res.status(403).json({
         success: false,
         error: 'Access denied: You are not assigned to this ticket',

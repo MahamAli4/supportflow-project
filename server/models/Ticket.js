@@ -95,6 +95,8 @@ const populateTicketData = async (ticket) => {
   if (plain.assignedAgentId) {
     const u = await UserModel2.findOne({ where: { id: plain.assignedAgentId } });
     if (u) plain.assignedAgentId = { _id: u.id, id: u.id, name: u.name, email: u.email, role: u.role };
+  } else {
+    plain.assignedAgentId = null;
   }
   plain.save = () => ticket.save();
   return plain;
@@ -110,14 +112,27 @@ const TicketProxy = new Proxy({}, {
 
     if (!TicketModel) return undefined;
 
+    if (prop === 'create') {
+      return async (data) => {
+        const payload = { ...data };
+        if (payload._id && !payload.id) payload.id = payload._id;
+        const t = await TicketModel.create(payload);
+        t._id = t.id;
+        return t;
+      };
+    }
+
     if (prop === 'findById') {
       return (id) => {
+        if (!id) return Promise.resolve(null);
         let doPopulate = false;
         const promise = (async () => {
           const t = await TicketModel.findOne({ where: { id } });
           if (!t) return null;
           if (doPopulate) return populateTicketData(t);
-          const plain = t.toJSON(); plain._id = plain.id; plain.save = () => t.save();
+          const plain = t.toJSON ? t.toJSON() : { ...t };
+          plain._id = plain.id;
+          plain.save = () => t.save();
           return plain;
         })();
         promise.populate = () => { doPopulate = true; return promise; };
@@ -131,7 +146,9 @@ const TicketProxy = new Proxy({}, {
           : query._id ? { id: query._id } : query.id ? { id: query.id } : {});
         return TicketModel.findOne({ where }).then(t => {
           if (!t) return null;
-          const plain = t.toJSON(); plain._id = plain.id; plain.save = () => t.save();
+          const plain = t.toJSON ? t.toJSON() : { ...t };
+          plain._id = plain.id;
+          plain.save = () => t.save();
           return plain;
         });
       };
@@ -150,7 +167,9 @@ const TicketProxy = new Proxy({}, {
           const tickets = await TicketModel.findAll({ where, order: [['createdAt', 'DESC']] });
           const plains = await Promise.all(tickets.map(async t => {
             if (doPopulate) return populateTicketData(t);
-            const plain = t.toJSON(); plain._id = plain.id; plain.save = () => t.save();
+            const plain = t.toJSON ? t.toJSON() : { ...t };
+            plain._id = plain.id;
+            plain.save = () => t.save();
             return plain;
           }));
           return plains;
