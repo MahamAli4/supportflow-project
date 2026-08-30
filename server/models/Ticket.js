@@ -84,6 +84,7 @@ const initializeTicket = (sequelize) => {
 
 const TicketProxy = new Proxy({}, {
   get(target, prop) {
+    if (prop === 'initializeTicket') return initializeTicket;
     if (global.__USE_IN_MEMORY_DB__ && inMemory.MockTicket[prop] !== undefined) {
       return inMemory.MockTicket[prop];
     }
@@ -92,4 +93,3 @@ const TicketProxy = new Proxy({}, {
 });
 
 module.exports = TicketProxy;
-module.exports.initializeTicket = initializeTicket;

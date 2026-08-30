@@ -30,6 +30,7 @@ const initializeCounter = (sequelize) => {
 
 const CounterProxy = new Proxy({}, {
   get(target, prop) {
+    if (prop === 'initializeCounter') return initializeCounter;
     if (global.__USE_IN_MEMORY_DB__ && inMemory.MockCounter[prop] !== undefined) {
       return inMemory.MockCounter[prop];
     }
@@ -38,4 +39,3 @@ const CounterProxy = new Proxy({}, {
 });
 
 module.exports = CounterProxy;
-module.exports.initializeCounter = initializeCounter;

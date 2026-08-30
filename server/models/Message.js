@@ -43,6 +43,7 @@ const initializeMessage = (sequelize) => {
 
 const MessageProxy = new Proxy({}, {
   get(target, prop) {
+    if (prop === 'initializeMessage') return initializeMessage;
     if (global.__USE_IN_MEMORY_DB__ && inMemory.MockMessage[prop] !== undefined) {
       return inMemory.MockMessage[prop];
     }
@@ -51,4 +52,3 @@ const MessageProxy = new Proxy({}, {
 });
 
 module.exports = MessageProxy;
-module.exports.initializeMessage = initializeMessage;

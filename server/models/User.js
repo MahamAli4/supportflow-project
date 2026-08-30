@@ -63,6 +63,8 @@ const initializeUser = (sequelize) => {
 
 const UserProxy = new Proxy({}, {
   get(target, prop) {
+    // Pass through the initialize function directly
+    if (prop === 'initializeUser') return initializeUser;
     if (global.__USE_IN_MEMORY_DB__ && inMemory.MockUser[prop] !== undefined) {
       return inMemory.MockUser[prop];
     }
@@ -71,4 +73,3 @@ const UserProxy = new Proxy({}, {
 });
 
 module.exports = UserProxy;
-module.exports.initializeUser = initializeUser;
