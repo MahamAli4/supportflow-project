@@ -13,6 +13,8 @@ const connectDB = async (customUri) => {
   const uri =
     customUri ||
     process.env.DATABASE_URL ||
+    process.env.DATABASE_PRIVATE_URL ||
+    process.env.DATABASE_PUBLIC_URL ||
     'postgresql://supportflow_user:supportflow_password@localhost:5432/supportflow';
 
   try {
