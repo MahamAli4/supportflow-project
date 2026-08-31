@@ -1,139 +1,59 @@
-const { DataTypes } = require('sequelize');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const inMemory = require('../services/inMemoryDb');
 
-let UserModel;
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, 'User name is required'],
+      trim: true,
+      minlength: [2, 'Name must be at least 2 characters long'],
+      maxlength: [50, 'Name cannot exceed 50 characters'],
+    },
+    email: {
+      type: String,
+      required: [true, 'Email is required'],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    passwordHash: {
+      type: String,
+      required: [true, 'Password hash is required'],
+      select: false,
+    },
+    role: {
+      type: String,
+      enum: ['customer', 'agent', 'admin'],
+      default: 'customer',
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 /**
- * Initialize User model with Sequelize
+ * Static method to hash password using bcrypt
  */
-const initializeUser = (sequelize) => {
-  UserModel = sequelize.define(
-    'User',
-    {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
-      },
-      name: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-        validate: {
-          len: [2, 50],
-          notEmpty: true,
-        },
-      },
-      email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-        validate: {
-          isEmail: true,
-        },
-      },
-      passwordHash: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      role: {
-        type: DataTypes.ENUM('customer', 'agent', 'admin'),
-        defaultValue: 'customer',
-      },
-    },
-    {
-      timestamps: true,
-      tableName: 'users',
-    }
-  );
-
-  // Static method to hash password
-  UserModel.hashPassword = async function (password) {
-    const salt = await bcrypt.genSalt(10);
-    return await bcrypt.hash(password, salt);
-  };
-
-  // Instance method to compare passwords
-  UserModel.prototype.comparePassword = async function (candidatePassword) {
-    return await bcrypt.compare(candidatePassword, this.passwordHash);
-  };
-
-  return UserModel;
+userSchema.statics.hashPassword = async function (password) {
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(password, salt);
 };
 
-const UserProxy = new Proxy({}, {
-  get(target, prop) {
-    // Pass through the initialize function directly
-    if (prop === 'initializeUser') return initializeUser;
+/**
+ * Instance method to compare candidate password with stored passwordHash
+ */
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.passwordHash);
+};
 
-    // InMemory mode — use mock directly
-    if (global.__USE_IN_MEMORY_DB__ && inMemory.MockUser[prop] !== undefined) {
-      return inMemory.MockUser[prop];
-    }
-
-    if (!UserModel) return undefined;
-
-    // Helper to wrap user instance with _id
-    const wrapUser = (u) => {
-      if (!u) return null;
-      u._id = u.id;
-      return u;
-    };
-
-    // MongoDB→Sequelize adapters for controllers
-    if (prop === 'findOne') {
-      return (query = {}) => {
-        const where = query.where || (query.email ? { email: query.email }
-          : query.role ? { role: query.role }
-          : query._id ? { id: query._id }
-          : query.id ? { id: query.id } : {});
-        const promise = UserModel.findOne({ where }).then(wrapUser);
-        promise.select = () => promise;
-        return promise;
-      };
-    }
-
-    if (prop === 'findById') {
-      return (id) => {
-        if (!id) return Promise.resolve(null);
-        const promise = UserModel.findOne({ where: { id } }).then(wrapUser);
-        promise.select = () => promise;
-        return promise;
-      };
-    }
-
-    if (prop === 'create') {
-      return async (data) => {
-        const u = await UserModel.create(data);
-        return wrapUser(u);
-      };
-    }
-
-    if (prop === 'find') {
-      return (query = {}) => {
-        const where = query.role ? { role: query.role } : {};
-        const promise = UserModel.findAll({ where, order: [['createdAt', 'DESC']] }).then((users) =>
-          users.map(wrapUser)
-        );
-        promise.select = () => promise;
-        promise.sort = () => promise;
-        return promise;
-      };
-    }
-
-    if (prop === 'countDocuments') {
-      return (query = {}) => {
-        const where = query.role ? { role: query.role } : {};
-        return UserModel.count({ where });
-      };
-    }
-
-    if (typeof UserModel[prop] === 'function') {
-      return UserModel[prop].bind(UserModel);
-    }
-
-    return UserModel[prop];
+userSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.passwordHash;
+    delete ret.__v;
+    return ret;
   },
 });
 
-module.exports = UserProxy;
+module.exports = mongoose.model('User', userSchema);

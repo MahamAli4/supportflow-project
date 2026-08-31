@@ -465,12 +465,12 @@ export const LandingPage = () => {
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
-              <div className="p-2.5 rounded-lg bg-slate-100 text-slate-700 inline-block">
-                <Server className="w-5 h-5" />
+              <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-700 inline-block">
+                <Database className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-slate-900">Docker Multi-Container</h3>
+              <h3 className="text-base font-bold text-slate-900">MongoDB MERN Architecture</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                3 container services (MongoDB 7.0 + Node.js Backend + Nginx/React Frontend) orchestrated via Docker Compose with health checks.
+                Full-stack MongoDB database with Mongoose ODM, Express REST APIs, Socket.IO WebSockets, and React Tailwind client.
               </p>
             </div>
 

@@ -1,85 +1,64 @@
-const { Sequelize } = require('sequelize');
-const inMemory = require('../services/inMemoryDb');
+const mongoose = require('mongoose');
+const dns = require('dns');
 
-let sequelize;
+// Configure reliable DNS servers for MongoDB Atlas SRV connection strings
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  // Ignore if not permitted
+}
 
 /**
- * Establishes connection to PostgreSQL database or falls back to in-memory store.
- * Also initializes all Sequelize models on successful connection.
+ * Establishes connection to MongoDB database using MONGODB_URI.
+ * Automatically seeds demo accounts if they don't exist yet.
  * @param {string} [customUri] - Optional URI override
- * @returns {Promise<Sequelize | object>}
+ * @returns {Promise<typeof mongoose>}
  */
 const connectDB = async (customUri) => {
   const uri =
     customUri ||
-    process.env.DATABASE_URL ||
-    process.env.DATABASE_PRIVATE_URL ||
-    process.env.DATABASE_PUBLIC_URL ||
-    'postgresql://supportflow_user:supportflow_password@localhost:5432/supportflow';
+    process.env.MONGODB_URI ||
+    process.env.MONGO_URI ||
+    'mongodb://127.0.0.1:27017/supportflow';
 
   try {
-    sequelize = new Sequelize(uri, {
-      dialect: 'postgres',
-      logging: process.env.NODE_ENV === 'development' ? console.log : false,
-      dialectOptions: {
-        // SSL only needed for external cloud databases (RDS, Heroku, etc.)
-        // Docker internal network does NOT need SSL
-        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      },
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
     });
+    console.log(`[Database] MongoDB Connected: ${conn.connection.host}`);
 
-    await sequelize.authenticate();
-    console.log(`[Database] PostgreSQL Connected: ${sequelize.config.host}`);
+    // Auto-seed default demo accounts on startup if not already seeded
+    try {
+      const { seedData } = require('../scripts/seed');
+      if (typeof seedData === 'function') {
+        await seedData();
+      }
+    } catch (seedErr) {
+      console.warn(`[Database Auto-Seed Warning] ${seedErr.message}`);
+    }
 
-    // Initialize all models
-    const User = require('../models/User');
-    const Ticket = require('../models/Ticket');
-    const Message = require('../models/Message');
-    const Counter = require('../models/Counter');
-
-    User.initializeUser(sequelize);
-    Ticket.initializeTicket(sequelize);
-    Message.initializeMessage(sequelize);
-    Counter.initializeCounter(sequelize);
-
-    // Sync models with database (alter in dev, safe in production)
-    await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-    console.log('[Database] Models synchronized with database');
-
-    global.__USE_IN_MEMORY_DB__ = false;
-    return sequelize;
+    return conn;
   } catch (error) {
-    console.log(`[Database Notice] PostgreSQL not available (${error.message}).`);
-    console.log(`[Database] Switching to High-Performance In-Memory DB Mode with Seeded Demo Accounts...`);
-    global.__USE_IN_MEMORY_DB__ = true;
-    await inMemory.seedInMemoryStore();
-    return { isInMemory: true };
+    console.error(`[Database Error] Failed to connect to MongoDB: ${error.message}`);
+    console.error('Please ensure MongoDB is running or MONGODB_URI is provided in your .env / cloud configuration.');
+    throw error;
   }
 };
 
 /**
- * Disconnects from PostgreSQL database.
+ * Disconnects from MongoDB database.
  * @returns {Promise<void>}
  */
 const disconnectDB = async () => {
   try {
-    if (sequelize) {
-      await sequelize.close();
-      console.log('[Database] PostgreSQL Disconnected');
-    }
+    await mongoose.disconnect();
+    console.log('[Database] MongoDB Disconnected');
   } catch (error) {
     console.error(`[Database Error] Disconnection failed: ${error.message}`);
   }
 };
 
-/**
- * Get the Sequelize instance for model definitions
- * @returns {Sequelize}
- */
-const getSequelize = () => sequelize;
-
 module.exports = {
   connectDB,
   disconnectDB,
-  getSequelize,
 };
